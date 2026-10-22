@@ -42,6 +42,14 @@ struct SettingsView: View {
                     Picker("Kilde", selection: $settings.source) {
                         ForEach(SpeedLimitSourceKind.allCases) { Text($0.title).tag($0) }
                     }
+                    if settings.source == .here {
+                        SecureField("HERE API-nøgle", text: $settings.hereAPIKey)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Stepper("Maks. \(settings.hereMonthlyLimit) kald/md",
+                                value: $settings.hereMonthlyLimit, in: 500...100_000, step: 500)
+                        LabeledContent("Brugt denne måned", value: "\(monitor.hereRequestsThisMonth)")
+                    }
                     if settings.source == .saphe {
                         TextField("Endpoint (https://…)", text: $settings.sapheEndpoint)
                             .textInputAutocapitalization(.never)
@@ -52,7 +60,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Datakilde")
                 } footer: {
-                    Text("Saphe har ingen offentlig API. Saphe-kilden virker først, når Saphe giver adgang. OpenStreetMap er gratis og dækker det meste af Danmark, men kan have huller eller forældede skilte.")
+                    Text("HERE er samme kortdata som Saphe bruger og dækker alle danske veje. Appen henter kun en ny rute ved sving eller efter 1–2 km, og bruger OpenStreetMap hvis HERE fejler eller kvoten er brugt. Saphe har ingen offentlig API.")
                 }
 
                 Section {

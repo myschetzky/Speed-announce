@@ -10,6 +10,9 @@ final class SpeedMonitor: ObservableObject {
     @Published private(set) var speedKmh: Double?
     @Published private(set) var isSpeeding = false
     @Published private(set) var statusMessage: String?
+    /// Name of the source that produced the current limit.
+    @Published private(set) var limitSource: String?
+    @Published private(set) var hereRequestsThisMonth = 0
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     let settings: AppSettings
@@ -17,6 +20,7 @@ final class SpeedMonitor: ObservableObject {
     private let announcer = Announcer()
     private var provider: SpeedLimitProvider
     private var providerKey: String
+    private let hereUsage: HEREUsage
     private var policy = AnnouncementPolicy()
     private var lookupInFlight = false
     private var lastLookup = Date.distantPast
@@ -27,7 +31,9 @@ final class SpeedMonitor: ObservableObject {
 
     init(settings: AppSettings) {
         self.settings = settings
-        self.provider = Self.makeProvider(settings)
+        let hereUsage = HEREUsage(monthlyLimit: settings.hereMonthlyLimit)
+        self.hereUsage = hereUsage
+        self.provider = Self.makeProvider(settings, hereUsage: hereUsage)
         self.providerKey = Self.makeProviderKey(settings)
 
         location.onLocation = { [weak self] location in
@@ -43,6 +49,7 @@ final class SpeedMonitor: ObservableObject {
             .store(in: &cancellables)
         applySettings()
         authorizationStatus = location.authorizationStatus
+        hereRequestsThisMonth = hereUsage.thisMonth
     }
 
     func start() {
@@ -88,20 +95,25 @@ final class SpeedMonitor: ObservableObject {
         policy.config.toleranceKmh = Double(settings.speedingToleranceKmh)
         policy.config.warningRepeat = TimeInterval(max(settings.warningRepeatSeconds, 5))
         announcer.speechRate = settings.speechRate
+        hereUsage.monthlyLimit = settings.hereMonthlyLimit
 
         let key = Self.makeProviderKey(settings)
         if key != providerKey {
             providerKey = key
-            provider = Self.makeProvider(settings)
+            provider = Self.makeProvider(settings, hereUsage: hereUsage)
         }
     }
 
     private static func makeProviderKey(_ settings: AppSettings) -> String {
-        [settings.source.rawValue, settings.sapheEndpoint, settings.sapheAPIKey].joined(separator: "|")
+        [settings.source.rawValue, settings.sapheEndpoint, settings.sapheAPIKey, settings.hereAPIKey].joined(separator: "|")
     }
 
-    private static func makeProvider(_ settings: AppSettings) -> SpeedLimitProvider {
+    private static func makeProvider(_ settings: AppSettings, hereUsage: HEREUsage) -> SpeedLimitProvider {
         switch settings.source {
+        case .here:
+            return FallbackSpeedLimitProvider(
+                primary: HERESpeedLimitProvider(apiKey: settings.hereAPIKey, usage: hereUsage),
+                fallback: OSMSpeedLimitProvider())
         case .openStreetMap: return OSMSpeedLimitProvider()
         case .saphe: return SapheSpeedLimitProvider(endpoint: settings.sapheEndpoint, apiKey: settings.sapheAPIKey)
         }
@@ -125,12 +137,17 @@ final class SpeedMonitor: ObservableObject {
                 let limit = try await provider.speedLimit(for: sample)
                 guard isRunning else { return }
                 roadName = limit?.roadName
+                limitSource = limit?.source ?? limitSource
                 statusMessage = limit == nil && policy.confirmed == nil ? "Ukendt fartgrænse her" : nil
+                if let error = (provider as? FallbackSpeedLimitProvider)?.primaryError {
+                    statusMessage = "HERE: \(error.localizedDescription)"
+                }
                 handle(policy.observe(limit, at: Date()))
             } catch {
                 statusMessage = error.localizedDescription
             }
             currentLimit = policy.confirmed
+            hereRequestsThisMonth = hereUsage.thisMonth
             updateSpeedingFlag()
         }
     }

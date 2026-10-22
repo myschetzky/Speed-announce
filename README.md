@@ -15,18 +15,21 @@ AirPods, bilens højttaler (Bluetooth/CarPlay) eller telefonen.
 - **Musik/podcast dæmpes** kun mens der tales og kommer tilbage til fuld lydstyrke bagefter.
 - Retningsbestemte grænser (`maxspeed:forward/backward`), ensrettede veje og zoneværdier som `DK:urban` håndteres.
 
-## Om Saphe-data
+## Datakilder
 
-Saphe har **ingen offentlig API** til deres fartgrænsedata. Deres data findes kun i Saphe Link-appen
-(Premium) og i deres samarbejder. Derfor:
+Saphe har **ingen offentlig API**, men Saphe bruger kortdata fra **HERE** til fartgrænser på alle danske veje.
+Appen henter derfor de samme data direkte fra HERE:
 
-- Appen bruger **OpenStreetMap** (via Overpass API) som standard. Det er gratis og dækker Danmark godt,
-  men vejstykker kan mangle grænse eller være forældede.
-- Der er en klar **Saphe-datakilde** (`SapheSpeedLimitProvider.swift`). Hvis du får partneradgang hos Saphe,
-  skal kun request/response i den fil tilpasses deres rigtige API. Endpoint og nøgle sættes under Indstillinger.
+- **HERE (standard)**: HERE Routing API v8 med `spans=speedLimit`. Appen beder om en kort rute (ca. 1,5 km)
+  i kørselsretningen med fartgrænsen for hvert stykke og følger den lokalt. En ny rute hentes kun ved sving,
+  eller når ruten er ved at være kørt, typisk ét kald pr. 1–2 km. Antal kald pr. måned vises under Indstillinger
+  og har et loft (standard 5.000), så du ikke overskrider HERE's gratiskvote. Tjek den aktuelle kvote på platform.here.com.
+- **OpenStreetMap** bruges automatisk, hvis HERE fejler, ikke kender grænsen eller kvoten er brugt.
+  Den kan også vælges alene.
+- **Saphe** er en plads til Saphe's egne data (`SapheSpeedLimitProvider.swift`), hvis de en dag åbner en API.
 
-Datakilder er udskiftelige via protokollen `SpeedLimitProvider`, så en kommerciel kilde
-(fx HERE eller TomTom) også kan sættes ind.
+**HERE API-nøgle:** opret en gratis konto på [platform.here.com](https://platform.here.com) og gå til
+Access Manager → Apps → Register new app → Credentials → API Keys. Indtast nøglen i appen under Indstillinger → Datakilde.
 
 ## Byg og kør
 
@@ -48,7 +51,7 @@ Tests: `xcodebuild test -scheme SpeedAnnounce -destination 'platform=iOS Simulat
 
 | Mappe | Indhold |
 |---|---|
-| `Providers/` | Datakilder: OpenStreetMap (med cache og vejmatching), Saphe-plads, `maxspeed`-parser |
+| `Providers/` | Datakilder: HERE (rute-lookahead, flexible polyline), OpenStreetMap (cache og vejmatching), Saphe-plads |
 | `Services/AnnouncementPolicy.swift` | Hvornår der annonceres/advares (ren logik, unit-testet) |
 | `Services/Announcer.swift` | Tale (dansk stemme), advarselstone, dæmpning af anden lyd |
 | `Services/LocationService.swift` | GPS i baggrunden |

@@ -45,7 +45,7 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(monitor.isRunning ? Color.red : Color.accentColor)
 
-                Text("Data: \(settings.source == .saphe ? "Saphe" : "© OpenStreetMap-bidragydere")")
+                Text("Data: \(attribution)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -58,6 +58,21 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView().environmentObject(settings).environmentObject(monitor)
             }
+        }
+    }
+
+    private var attribution: String {
+        if let source = monitor.limitSource {
+            switch source {
+            case "HERE": return "© HERE"
+            case "Saphe": return "Saphe"
+            default: return "© OpenStreetMap-bidragydere"
+            }
+        }
+        switch settings.source {
+        case .here: return "© HERE"
+        case .saphe: return "Saphe"
+        case .openStreetMap: return "© OpenStreetMap-bidragydere"
         }
     }
 

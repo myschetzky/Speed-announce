@@ -1,6 +1,7 @@
 import Foundation
 
 enum SpeedLimitSourceKind: String, CaseIterable, Identifiable {
+    case here
     case openStreetMap
     case saphe
 
@@ -8,6 +9,7 @@ enum SpeedLimitSourceKind: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .here: return "HERE (+ OpenStreetMap)"
         case .openStreetMap: return "OpenStreetMap"
         case .saphe: return "Saphe (kræver API-adgang)"
         }
@@ -31,6 +33,9 @@ final class AppSettings: ObservableObject {
     @Published var source: SpeedLimitSourceKind { didSet { defaults.set(source.rawValue, forKey: Keys.source) } }
     @Published var sapheAPIKey: String { didSet { defaults.set(sapheAPIKey, forKey: Keys.sapheKey) } }
     @Published var sapheEndpoint: String { didSet { defaults.set(sapheEndpoint, forKey: Keys.sapheEndpoint) } }
+    @Published var hereAPIKey: String { didSet { defaults.set(hereAPIKey, forKey: Keys.hereKey) } }
+    /// Stop using HERE (and fall back to OpenStreetMap) after this many requests in a month.
+    @Published var hereMonthlyLimit: Int { didSet { defaults.set(hereMonthlyLimit, forKey: Keys.hereLimit) } }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -42,7 +47,8 @@ final class AppSettings: ObservableObject {
             Keys.warnRepeat: 20,
             Keys.tone: true,
             Keys.rate: 0.5,
-            Keys.source: SpeedLimitSourceKind.openStreetMap.rawValue,
+            Keys.source: SpeedLimitSourceKind.here.rawValue,
+            Keys.hereLimit: 5_000,
         ])
         announceOnChange = defaults.bool(forKey: Keys.announceOnChange)
         periodicIntervalMinutes = defaults.integer(forKey: Keys.periodic)
@@ -54,6 +60,8 @@ final class AppSettings: ObservableObject {
         source = SpeedLimitSourceKind(rawValue: defaults.string(forKey: Keys.source) ?? "") ?? .openStreetMap
         sapheAPIKey = defaults.string(forKey: Keys.sapheKey) ?? ""
         sapheEndpoint = defaults.string(forKey: Keys.sapheEndpoint) ?? ""
+        hereAPIKey = defaults.string(forKey: Keys.hereKey) ?? ""
+        hereMonthlyLimit = defaults.integer(forKey: Keys.hereLimit)
     }
 
     private enum Keys {
@@ -67,5 +75,7 @@ final class AppSettings: ObservableObject {
         static let source = "speedLimitSource"
         static let sapheKey = "sapheAPIKey"
         static let sapheEndpoint = "sapheEndpoint"
+        static let hereKey = "hereAPIKey"
+        static let hereLimit = "hereMonthlyLimit"
     }
 }
