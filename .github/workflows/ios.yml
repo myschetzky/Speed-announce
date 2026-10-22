@@ -55,8 +55,9 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add screenshots
+          # The generated project is committed so it can be opened without installing XcodeGen.
+          git add screenshots SpeedAnnounce.xcodeproj SpeedAnnounce/Info.plist
           git diff --cached --quiet && exit 0
-          git commit -m "Update screenshots [skip ci]"
+          git commit -m "Update screenshots and Xcode project [skip ci]"
           # A newer push may have moved the branch; screenshots are not worth failing the build over.
           git pull --rebase origin "$GITHUB_REF_NAME" && git push || echo "::warning::Could not push screenshots"

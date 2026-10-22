@@ -1,6 +1,5 @@
-*.xcodeproj/
 xcuserdata/
 DerivedData/
 .DS_Store
 build/
-SpeedAnnounce/Info.plist
+*.xcodeproj/project.xcworkspace/xcuserdata/

@@ -35,11 +35,14 @@ Access Manager → Apps → Register new app → Credentials → API Keys. Indta
 
 Kræver en Mac med Xcode 15 eller nyere og iOS 17 eller nyere på telefonen.
 
+Xcode-projektet (`SpeedAnnounce.xcodeproj`) bliver genereret af CI og ligger i repoet, så det kan åbnes direkte:
+
 ```sh
-brew install xcodegen
-xcodegen generate
-open SpeedAnnounce.xcodeproj
+git clone -b claude/speed-announce-app https://github.com/myschetzky/Speed-announce.git
+open Speed-announce/SpeedAnnounce.xcodeproj
 ```
+
+Ændrer du filstrukturen, så generér projektet igen med [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`xcodegen generate`) eller lad CI gøre det.
 
 Vælg dit Apple-team under *Signing & Capabilities* og kør på din iPhone. Tryk **Start kørsel** og giv adgang til
 lokalitet. Vælg "Tillad altid", hvis appen også skal kunne fortsætte efter længere tid i baggrunden.
