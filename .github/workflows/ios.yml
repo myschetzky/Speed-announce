@@ -1,0 +1,23 @@
+name: iOS build & test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build and test
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')))")
+          xcodebuild test \
+            -project SpeedAnnounce.xcodeproj \
+            -scheme SpeedAnnounce \
+            -destination "id=$DEVICE" \
+            CODE_SIGNING_ALLOWED=NO
