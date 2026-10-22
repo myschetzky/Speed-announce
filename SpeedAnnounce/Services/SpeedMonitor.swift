@@ -71,6 +71,15 @@ final class SpeedMonitor: ObservableObject {
         announcer.announce(.speeding(limit: 50, speed: 62), withTone: settings.playWarningTone)
     }
 
+    /// Fills the screen with sample values, used for App Store/README screenshots.
+    func showDemo(limit: Int, speed: Double, road: String) {
+        currentLimit = .kmh(limit)
+        speedKmh = speed
+        roadName = road
+        isRunning = true
+        isSpeeding = speed > Double(limit + settings.speedingToleranceKmh)
+    }
+
     private func applySettings() {
         policy.config.announceOnChange = settings.announceOnChange
         policy.config.periodicInterval = settings.periodicIntervalMinutes > 0
