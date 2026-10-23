@@ -13,11 +13,14 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
     private let endpoints = [
         URL(string: "https://overpass-api.de/api/interpreter")!,
         URL(string: "https://overpass.kumi.systems/api/interpreter")!,
+        URL(string: "https://overpass.private.coffee/api/interpreter")!,
     ]
     /// Radius of each fetched area in metres.
-    private let fetchRadius = 1_200.0
+    private let fetchRadius = 800.0
     /// Refetch when this close to the edge of the cached area.
-    private let refetchMargin = 500.0
+    private let refetchMargin = 300.0
+    /// Public Overpass servers are often overloaded; give up quickly so a fallback lookup doesn't stall.
+    private let requestTimeout: TimeInterval = 6
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -45,7 +48,12 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
         }
         guard await cache.beginFetch() else {
             // Another fetch is running or we are backing off: use what we have.
-            return await cache.allRoads
+            let roads = await cache.allRoads
+            if roads.isEmpty, let wait = await cache.backoffRemaining {
+                throw SpeedLimitProviderError.unavailable(
+                    "OpenStreetMap-serverne svarer ikke. Prøver igen om \(Int(wait)) sek.")
+            }
+            return roads
         }
         do {
             let roads = try await fetchRoads(around: coordinate)
@@ -54,7 +62,10 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
         } catch {
             await cache.fetchFailed()
             let fallback = await cache.allRoads
-            if fallback.isEmpty { throw error }
+            if fallback.isEmpty {
+                throw SpeedLimitProviderError.unavailable(
+                    "OpenStreetMap-serverne svarer ikke (\(error.localizedDescription))")
+            }
             return fallback
         }
     }
@@ -67,8 +78,12 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
         out tags geom;
         """
         var lastError: Error = SpeedLimitProviderError.badResponse(0)
-        for endpoint in endpoints {
-            var request = URLRequest(url: endpoint, timeoutInterval: 15)
+        // Start with the server that answered last time.
+        let first = await cache.preferredEndpoint % endpoints.count
+        for offset in endpoints.indices {
+            let index = (first + offset) % endpoints.count
+            let endpoint = endpoints[index]
+            var request = URLRequest(url: endpoint, timeoutInterval: requestTimeout)
             request.httpMethod = "POST"
             request.setValue("SpeedAnnounce-iOS/1.0", forHTTPHeaderField: "User-Agent")
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -78,7 +93,9 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
                 let (data, response) = try await session.data(for: request)
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                 guard status == 200 else { throw SpeedLimitProviderError.badResponse(status) }
-                return try Self.decode(data)
+                let roads = try Self.decode(data)
+                await cache.setPreferredEndpoint(index)
+                return roads
             } catch {
                 lastError = error
             }
@@ -114,6 +131,8 @@ private actor RoadCache {
     private var center: CLLocationCoordinate2D?
     private var isFetching = false
     private var retryAfter = Date.distantPast
+    private var failures = 0
+    private(set) var preferredEndpoint = 0
 
     func roads(near coordinate: CLLocationCoordinate2D, validWithin radius: Double) -> [OSMRoad]? {
         guard let center, RoadGeometry.distance(center, coordinate) < radius else { return nil }
@@ -130,11 +149,21 @@ private actor RoadCache {
         allRoads = roads
         self.center = center
         isFetching = false
+        failures = 0
     }
 
+    /// Backs off 30 s, 60 s, 120 s … up to 5 min while the servers are unreachable.
     func fetchFailed() {
         isFetching = false
-        retryAfter = Date().addingTimeInterval(15)
+        failures += 1
+        retryAfter = Date().addingTimeInterval(min(300, 15 * pow(2, Double(failures))))
+    }
+
+    func setPreferredEndpoint(_ index: Int) { preferredEndpoint = index }
+
+    var backoffRemaining: TimeInterval? {
+        let remaining = retryAfter.timeIntervalSinceNow
+        return remaining > 0 ? remaining : nil
     }
 
     func setPreviousRoadId(_ id: Int64?) { previousRoadId = id }

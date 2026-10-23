@@ -3,11 +3,13 @@ import Foundation
 enum SpeedLimitProviderError: LocalizedError {
     case notConfigured(String)
     case badResponse(Int)
+    case unavailable(String)
 
     var errorDescription: String? {
         switch self {
         case .notConfigured(let message): return message
         case .badResponse(let status): return "Datakilden svarede med status \(status)"
+        case .unavailable(let message): return message
         }
     }
 }
