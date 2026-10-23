@@ -12,6 +12,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  here-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List HERE route attributes
+        env:
+          HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
+        run: python3 scripts/here_probe.py
+
   test:
     runs-on: macos-15
     steps:
