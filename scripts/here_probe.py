@@ -21,6 +21,6 @@ def get(label, url, limit=6000):
 
 BASE = ("https://router.hereapi.com/v8/routes?transportMode=car"
         "&origin=55.6761,12.5683&destination=55.6720,12.5745&return=polyline")
-# An invalid value makes HERE list the valid ones in its error message.
-get("valid span names", BASE + "&spans=notAValidSpan")
-get("speed related spans", BASE + "&spans=speedLimit,maxSpeed,dynamicSpeedInfo,functionalClass,streetAttributes,names", 4000)
+# Guessed names for advisory (blue sign) speeds; HERE answers 400 for unknown span types.
+for name in ["advisorySpeed", "recommendedSpeed", "speedAdvisory", "advisorySpeedLimit", "carAttributes"]:
+    get(name, BASE + f"&spans={name}", 600)
