@@ -21,6 +21,10 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink("Turlog") { TripLogView() }
+                }
+
                 Section("Annoncering") {
                     Toggle("Annoncér når grænsen ændres", isOn: $settings.announceOnChange)
                     Picker("Gentag grænsen", selection: $settings.periodicIntervalMinutes) {

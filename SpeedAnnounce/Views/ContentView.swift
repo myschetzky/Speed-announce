@@ -56,7 +56,7 @@ struct ContentView: View {
                     .accessibilityLabel("Indstillinger")
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView().environmentObject(settings).environmentObject(monitor)
+                SettingsView().environmentObject(settings).environmentObject(monitor).environmentObject(monitor.tripLog)
             }
         }
     }

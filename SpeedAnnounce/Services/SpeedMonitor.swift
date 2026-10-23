@@ -30,6 +30,8 @@ final class SpeedMonitor: ObservableObject {
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     let settings: AppSettings
+    let tripLog: TripLog
+    private var lastSample: LocationSample?
     private let location = LocationService()
     private let announcer = Announcer()
     private var provider: SpeedLimitProvider
@@ -45,8 +47,9 @@ final class SpeedMonitor: ObservableObject {
     /// Fixes less precise than this are not used for lookups.
     private let maxLookupAccuracy: CLLocationAccuracy = 100
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, tripLog: TripLog) {
         self.settings = settings
+        self.tripLog = tripLog
         let hereUsage = HEREUsage(monthlyLimit: settings.hereMonthlyLimit)
         self.hereUsage = hereUsage
         self.provider = Self.makeProvider(settings, hereUsage: hereUsage)
@@ -74,6 +77,8 @@ final class SpeedMonitor: ObservableObject {
         policy.reset()
         currentLimit = nil
         diagnostics = Diagnostics()
+        lastSample = nil
+        tripLog.add(makeEntry(.tripStart))
         isRunning = true
         location.start()
         updateWaitingMessage()
@@ -176,6 +181,7 @@ final class SpeedMonitor: ObservableObject {
         diagnostics.lastFix = location.timestamp
         diagnostics.lastAccuracy = location.horizontalAccuracy
         let sample = LocationSample(location)
+        lastSample = sample
         speedKmh = sample.speedKmh
         handle(policy.tick(speedKmh: sample.speedKmh, at: Date()))
         updateSpeedingFlag()
@@ -227,8 +233,37 @@ final class SpeedMonitor: ObservableObject {
     private func handle(_ events: [AnnouncementPolicy.Event]) {
         for event in events {
             announcer.announce(event, withTone: settings.playWarningTone)
+            log(event)
         }
         currentLimit = policy.confirmed
+    }
+
+    private func log(_ event: AnnouncementPolicy.Event) {
+        let kind: TripLogEntry.Kind
+        var limitKmh: Int?
+        switch event {
+        case .limitChanged(let limit):
+            kind = .limitChanged
+            if case .kmh(let value) = limit { limitKmh = value }
+        case .periodic(let limit):
+            kind = .periodic
+            if case .kmh(let value) = limit { limitKmh = value }
+        case .speeding(let limit, _):
+            kind = .speeding
+            limitKmh = limit
+        case .limitLost:
+            kind = .limitLost
+        }
+        tripLog.add(makeEntry(kind, limitKmh: limitKmh))
+    }
+
+    private func makeEntry(_ kind: TripLogEntry.Kind, limitKmh: Int? = nil) -> TripLogEntry {
+        TripLogEntry(date: Date(), kind: kind, limitKmh: limitKmh,
+                     speedKmh: speedKmh.map { Int($0.rounded()) },
+                     road: kind == .tripStart ? nil : roadName,
+                     source: kind == .tripStart ? settings.source.title : limitSource,
+                     latitude: lastSample?.coordinate.latitude,
+                     longitude: lastSample?.coordinate.longitude)
     }
 
     private func updateSpeedingFlag() {
