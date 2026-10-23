@@ -36,15 +36,15 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         }
         let current = match(sample)
         if let current, current.remaining > refetchRemaining {
-            return limit(from: current)
+            return try limit(from: current)
         }
         guard Date().timeIntervalSince(lastFetch) >= minFetchInterval else {
-            return current.flatMap(limit(from:))
+            return try current.map(limit(from:))
         }
         // Parked away from the road: a new route from the same spot would not match either.
         if current == nil, let last = lastFetchCoordinate,
            RoadGeometry.distance(last, sample.coordinate) < 50, Date().timeIntervalSince(lastFetch) < 60 {
-            return nil
+            throw notOnRoute(sample)
         }
         guard usage.canSpend else {
             throw SpeedLimitProviderError.notConfigured("Månedens HERE-kvote er brugt. Bruger OpenStreetMap.")
@@ -53,17 +53,41 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         lastFetch = Date()
         lastFetchCoordinate = sample.coordinate
         do {
-            usage.record()
-            let (data, response) = try await session.data(for: makeRequest(for: sample))
-            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            guard status == 200 else { throw SpeedLimitProviderError.badResponse(status) }
-            path = try HERERoutePath(data: data)
+            var route = try await fetchRoute(for: sample, lookahead: lookahead)
+            if route.points.count < 2 {
+                // The point straight ahead may be unreachable (water, fields); try closer.
+                route = try await fetchRoute(for: sample, lookahead: 300)
+            }
+            guard route.points.count >= 2 else {
+                throw SpeedLimitProviderError.unavailable("HERE fandt ingen vej her")
+            }
+            path = route
             lastMatchIndex = 0
         } catch {
-            if let current { return limit(from: current) }
+            if let current { return try limit(from: current) }
             throw error
         }
-        return match(sample).flatMap(limit(from:))
+        guard let hit = match(sample) else { throw notOnRoute(sample) }
+        return try limit(from: hit)
+    }
+
+    private func fetchRoute(for sample: LocationSample, lookahead: Double) async throws -> HERERoutePath {
+        guard usage.canSpend else {
+            throw SpeedLimitProviderError.notConfigured("Månedens HERE-kvote er brugt. Bruger OpenStreetMap.")
+        }
+        usage.record()
+        let (data, response) = try await session.data(for: makeRequest(for: sample, lookahead: lookahead))
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else {
+            let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
+            throw SpeedLimitProviderError.unavailable("HERE svarede \(status): \(body)")
+        }
+        return try HERERoutePath(data: data)
+    }
+
+    private func notOnRoute(_ sample: LocationSample) -> Error {
+        let distance = path?.nearestDistance(to: sample.coordinate).map { "\(Int($0)) m" } ?? "langt"
+        return SpeedLimitProviderError.unavailable("Ikke på HERE's vej (nærmeste vej \(distance) væk)")
     }
 
     private func match(_ sample: LocationSample) -> HERERoutePath.Match? {
@@ -72,12 +96,14 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         return hit
     }
 
-    private func limit(from match: HERERoutePath.Match) -> SpeedLimit? {
-        guard let mps = match.speedLimit else { return nil }
+    private func limit(from match: HERERoutePath.Match) throws -> SpeedLimit {
+        guard let mps = match.speedLimit else {
+            throw SpeedLimitProviderError.unavailable("HERE kender ikke grænsen på \(match.roadName ?? "denne vej")")
+        }
         return SpeedLimit(kmh: Int((mps * 3.6).rounded()), roadName: match.roadName, source: name)
     }
 
-    private func makeRequest(for sample: LocationSample) -> URLRequest {
+    private func makeRequest(for sample: LocationSample, lookahead: Double) -> URLRequest {
         let hasCourse = sample.course >= 0 && sample.speed > 2
         let course = hasCourse ? sample.course : 0
         let destination = Self.offset(sample.coordinate, meters: lookahead, bearing: course)
@@ -173,6 +199,13 @@ struct HERERoutePath {
     }
 
     var length: Double { cumulative.last ?? 0 }
+
+    func nearestDistance(to coordinate: CLLocationCoordinate2D) -> Double? {
+        guard points.count >= 2 else { return nil }
+        return (0..<(points.count - 1))
+            .map { RoadGeometry.match(point: coordinate, a: points[$0], b: points[$0 + 1]).distance }
+            .min()
+    }
 
     /// Finds the segment the car is on. Searches forward from `near` so the
     /// match can't jump back to an earlier part of the route that passes close by.

@@ -62,6 +62,18 @@ final class HEREProviderTests: XCTestCase {
         XCTAssertNil(path.match(farAway, near: 0))
     }
 
+    func testNearestDistanceAndEmptyRoute() throws {
+        let path = try HERERoutePath(data: Data(response.utf8))
+        let onRoute = path.points[20]
+        XCTAssertEqual(path.nearestDistance(to: onRoute) ?? -1, 0, accuracy: 0.5)
+        let away = HERESpeedLimitProvider.offset(onRoute, meters: 300, bearing: 45)
+        XCTAssertGreaterThan(path.nearestDistance(to: away) ?? 0, 100)
+
+        let empty = try HERERoutePath(data: Data(#"{"routes":[],"notices":[{"code":"couldNotMatchDestination"}]}"#.utf8))
+        XCTAssertTrue(empty.points.isEmpty)
+        XCTAssertNil(empty.nearestDistance(to: onRoute))
+    }
+
     func testOffsetProjection() {
         let start = CLLocationCoordinate2D(latitude: 55.68, longitude: 12.57)
         let north = HERESpeedLimitProvider.offset(start, meters: 1_000, bearing: 0)
