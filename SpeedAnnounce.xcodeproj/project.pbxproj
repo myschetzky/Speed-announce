@@ -8,12 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		02FE3D4C980D77AB97A03987 /* Announcer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A59EB48CB381766363C50608 /* Announcer.swift */; };
+		0EA1A8A1E365D12F021B1383 /* TripLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA730CA938A594156E24EBF6 /* TripLog.swift */; };
+		0F1D2D218B8273FE77BDDAB2 /* TripLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B7773460B8E88CFB9355E1 /* TripLogView.swift */; };
 		13519E63F33A22DC5290EA45 /* HERESpeedLimitProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E312C6DF0122A04EA8039AC4 /* HERESpeedLimitProvider.swift */; };
 		3DCE0B6D011BA5F2BC8D2B07 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51349D7E9E0B79F9A29BA8B /* LocationService.swift */; };
 		4134E4B5FB07E59D904BA444 /* SpeedLimitProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58FE0FB0B821595E1DEDD27 /* SpeedLimitProvider.swift */; };
 		47C536688B6D01B94A165EA5 /* OSMRoadMatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 759E55D9E844FA2205ED365F /* OSMRoadMatcherTests.swift */; };
 		4AFD0BD5BB4029F514FDEC3B /* SpeedLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A38277BD2714EDB42E6E7E /* SpeedLimit.swift */; };
 		569C004A047FC4693C58BA85 /* SpeedMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72F40821DCB99B773375FE3 /* SpeedMonitor.swift */; };
+		68DF66257163A94DFD966555 /* TripLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29BB70B65010F91009DA60 /* TripLogTests.swift */; };
 		73628E54B6D09FFEAAC304C6 /* AnnouncementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6D8C7E53A21C8B70D18661E /* AnnouncementPolicy.swift */; };
 		89B25B0A10A022205D8005A7 /* FlexiblePolyline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E0739D963D4CCEE35D06BA /* FlexiblePolyline.swift */; };
 		91EC1C243B65A6EB7F890A35 /* AnnouncementPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75ECBFE06231C0E004674580 /* AnnouncementPolicyTests.swift */; };
@@ -45,6 +48,7 @@
 		0456C61876BF69E2FA9A19EB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		0D8FEFC7FACA564F505E96A3 /* OSMSpeedLimitProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSMSpeedLimitProvider.swift; sourceTree = "<group>"; };
 		228A4F2CB156C342619442ED /* OSMRoadMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSMRoadMatcher.swift; sourceTree = "<group>"; };
+		28B7773460B8E88CFB9355E1 /* TripLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripLogView.swift; sourceTree = "<group>"; };
 		32715A22BAB5470646F20B7D /* HEREProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEREProviderTests.swift; sourceTree = "<group>"; };
 		43FD40AFDFA5F4E3157A575A /* RoadGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadGeometry.swift; sourceTree = "<group>"; };
 		4C5C5E3E4C59FF2C15CBEDF1 /* SapheSpeedLimitProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SapheSpeedLimitProvider.swift; sourceTree = "<group>"; };
@@ -61,6 +65,8 @@
 		A72F40821DCB99B773375FE3 /* SpeedMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedMonitor.swift; sourceTree = "<group>"; };
 		A92A2D74EAE092F827676734 /* MaxspeedParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaxspeedParser.swift; sourceTree = "<group>"; };
 		ABFABB67F68FE506C525344A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AD29BB70B65010F91009DA60 /* TripLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripLogTests.swift; sourceTree = "<group>"; };
+		BA730CA938A594156E24EBF6 /* TripLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripLog.swift; sourceTree = "<group>"; };
 		C600FC93C6259AB9228486D9 /* SpeedAnnounceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedAnnounceApp.swift; sourceTree = "<group>"; };
 		C6D8C7E53A21C8B70D18661E /* AnnouncementPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnouncementPolicy.swift; sourceTree = "<group>"; };
 		E312C6DF0122A04EA8039AC4 /* HERESpeedLimitProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HERESpeedLimitProvider.swift; sourceTree = "<group>"; };
@@ -75,6 +81,7 @@
 			children = (
 				8C9BE4DC8EDFF4FF2527DB52 /* Settings.swift */,
 				84A38277BD2714EDB42E6E7E /* SpeedLimit.swift */,
+				BA730CA938A594156E24EBF6 /* TripLog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -132,6 +139,7 @@
 				32715A22BAB5470646F20B7D /* HEREProviderTests.swift */,
 				A1C53B26D7456C6EFCB845D7 /* MaxspeedParserTests.swift */,
 				759E55D9E844FA2205ED365F /* OSMRoadMatcherTests.swift */,
+				AD29BB70B65010F91009DA60 /* TripLogTests.swift */,
 			);
 			path = SpeedAnnounceTests;
 			sourceTree = "<group>";
@@ -152,6 +160,7 @@
 			children = (
 				0456C61876BF69E2FA9A19EB /* ContentView.swift */,
 				ABFABB67F68FE506C525344A /* SettingsView.swift */,
+				28B7773460B8E88CFB9355E1 /* TripLogView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -243,6 +252,7 @@
 				E655CA7D95F448B7B7AF9E46 /* HEREProviderTests.swift in Sources */,
 				DAB698F677539CC8144FD068 /* MaxspeedParserTests.swift in Sources */,
 				47C536688B6D01B94A165EA5 /* OSMRoadMatcherTests.swift in Sources */,
+				68DF66257163A94DFD966555 /* TripLogTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,6 +278,8 @@
 				4AFD0BD5BB4029F514FDEC3B /* SpeedLimit.swift in Sources */,
 				4134E4B5FB07E59D904BA444 /* SpeedLimitProvider.swift in Sources */,
 				569C004A047FC4693C58BA85 /* SpeedMonitor.swift in Sources */,
+				0EA1A8A1E365D12F021B1383 /* TripLog.swift in Sources */,
+				0F1D2D218B8273FE77BDDAB2 /* TripLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
