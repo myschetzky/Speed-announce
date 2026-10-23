@@ -15,6 +15,7 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
     private var path: HERERoutePath?
     private var lastMatchIndex = 0
     private var lastFetch = Date.distantPast
+    private var lastFetchCoordinate: CLLocationCoordinate2D?
 
     /// How far ahead the requested route reaches.
     private let lookahead = 1_500.0
@@ -40,11 +41,17 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         guard Date().timeIntervalSince(lastFetch) >= minFetchInterval else {
             return current.flatMap(limit(from:))
         }
+        // Parked away from the road: a new route from the same spot would not match either.
+        if current == nil, let last = lastFetchCoordinate,
+           RoadGeometry.distance(last, sample.coordinate) < 50, Date().timeIntervalSince(lastFetch) < 60 {
+            return nil
+        }
         guard usage.canSpend else {
             throw SpeedLimitProviderError.notConfigured("Månedens HERE-kvote er brugt. Bruger OpenStreetMap.")
         }
 
         lastFetch = Date()
+        lastFetchCoordinate = sample.coordinate
         do {
             usage.record()
             let (data, response) = try await session.data(for: makeRequest(for: sample))

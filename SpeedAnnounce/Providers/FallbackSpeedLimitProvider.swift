@@ -7,6 +7,8 @@ final class FallbackSpeedLimitProvider: SpeedLimitProvider {
     var name: String { primary.name }
     /// Last error from the primary provider, shown in the UI.
     private(set) var primaryError: Error?
+    /// Last outcome of the primary provider, for diagnostics.
+    private(set) var primaryStatus: String?
 
     init(primary: SpeedLimitProvider, fallback: SpeedLimitProvider) {
         self.primary = primary
@@ -17,9 +19,11 @@ final class FallbackSpeedLimitProvider: SpeedLimitProvider {
         do {
             let limit = try await primary.speedLimit(for: sample)
             primaryError = nil
+            primaryStatus = limit.map { $0.kmh.map { "\($0) km/t" } ?? "ingen grænse" } ?? "ukendt (ikke på en kendt vej)"
             if let limit { return limit }
         } catch {
             primaryError = error
+            primaryStatus = "fejl: \(error.localizedDescription)"
         }
         return try await fallback.speedLimit(for: sample)
     }

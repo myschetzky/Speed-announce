@@ -2,7 +2,8 @@ import AVFoundation
 
 /// Speaks announcements through the current audio route (AirPods, CarPlay, speaker),
 /// ducking other audio such as music or podcasts while speaking.
-final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
+// Only used from the main thread; the delegate callbacks just schedule work on main.
+final class Announcer: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendable {
     private let synthesizer = AVSpeechSynthesizer()
     private let session = AVAudioSession.sharedInstance()
     private var tonePlayer: AVAudioPlayer?

@@ -84,6 +84,10 @@ struct SettingsView: View {
                     LabeledContent("Opslag", value: "\(d.lookupsFinished) af \(d.lookupsStarted)")
                     LabeledContent("Seneste opslag", value: d.lastLookupDuration.map { String(format: "%.1f sek", $0) } ?? "–")
                     LabeledContent("Resultat", value: d.lastLookupResult ?? "–")
+                    if settings.source == .here {
+                        LabeledContent("HERE", value: d.hereStatus ?? "–")
+                        LabeledContent("HERE-nøgle", value: settings.hereAPIKey.isEmpty ? "mangler" : "indtastet")
+                    }
                     if let error = d.lastError {
                         Text("Fejl: \(error)").font(.footnote).foregroundStyle(.red)
                     }

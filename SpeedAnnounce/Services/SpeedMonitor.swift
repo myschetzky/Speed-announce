@@ -25,6 +25,7 @@ final class SpeedMonitor: ObservableObject {
         var lastLookupDuration: TimeInterval?
         var lastLookupResult: String?
         var lastError: String?
+        var hereStatus: String?
     }
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
@@ -193,9 +194,10 @@ final class SpeedMonitor: ObservableObject {
             }
             do {
                 let limit = try await provider.speedLimit(for: sample)
+                diagnostics.hereStatus = (provider as? FallbackSpeedLimitProvider)?.primaryStatus
                 diagnostics.lastLookupResult = limit.map { "\($0.kmh.map { "\($0)" } ?? "ingen grænse") km/t fra \($0.source)" }
                     ?? "ukendt fartgrænse"
-                diagnostics.lastError = (provider as? FallbackSpeedLimitProvider)?.primaryError?.localizedDescription
+                diagnostics.lastError = nil
                 guard isRunning else { return }
                 roadName = limit?.roadName
                 limitSource = limit?.source ?? limitSource
@@ -206,6 +208,7 @@ final class SpeedMonitor: ObservableObject {
                 handle(policy.observe(limit, at: Date()))
             } catch {
                 diagnostics.lastLookupResult = "fejl"
+                diagnostics.hereStatus = (provider as? FallbackSpeedLimitProvider)?.primaryStatus
                 diagnostics.lastError = error.localizedDescription
                 statusMessage = error.localizedDescription
             }
