@@ -68,7 +68,7 @@ final class OSMSpeedLimitProvider: SpeedLimitProvider {
         """
         var lastError: Error = SpeedLimitProviderError.badResponse(0)
         for endpoint in endpoints {
-            var request = URLRequest(url: endpoint, timeoutInterval: 25)
+            var request = URLRequest(url: endpoint, timeoutInterval: 15)
             request.httpMethod = "POST"
             request.setValue("SpeedAnnounce-iOS/1.0", forHTTPHeaderField: "User-Agent")
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")

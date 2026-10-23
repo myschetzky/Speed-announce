@@ -13,6 +13,19 @@ final class SpeedMonitor: ObservableObject {
     /// Name of the source that produced the current limit.
     @Published private(set) var limitSource: String?
     @Published private(set) var hereRequestsThisMonth = 0
+    @Published private(set) var diagnostics = Diagnostics()
+
+    /// What the app is doing right now, shown under Indstillinger → Diagnose.
+    struct Diagnostics {
+        var locationsReceived = 0
+        var lastFix: Date?
+        var lastAccuracy: Double?
+        var lookupsStarted = 0
+        var lookupsFinished = 0
+        var lastLookupDuration: TimeInterval?
+        var lastLookupResult: String?
+        var lastError: String?
+    }
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     let settings: AppSettings
@@ -28,6 +41,8 @@ final class SpeedMonitor: ObservableObject {
 
     /// Minimum time between speed limit lookups.
     private let lookupInterval: TimeInterval = 1
+    /// Fixes less precise than this are not used for lookups.
+    private let maxLookupAccuracy: CLLocationAccuracy = 100
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -40,7 +55,7 @@ final class SpeedMonitor: ObservableObject {
             Task { @MainActor in self?.handle(location) }
         }
         location.onAuthorizationChange = { [weak self] status in
-            Task { @MainActor in self?.authorizationStatus = status }
+            Task { @MainActor in self?.authorizationChanged(status) }
         }
 
         settings.objectWillChange
@@ -57,9 +72,42 @@ final class SpeedMonitor: ObservableObject {
         location.requestPermission()
         policy.reset()
         currentLimit = nil
-        statusMessage = "Søger efter vej…"
+        diagnostics = Diagnostics()
         isRunning = true
         location.start()
+        updateWaitingMessage()
+    }
+
+    private func authorizationChanged(_ status: CLAuthorizationStatus) {
+        authorizationStatus = status
+        guard isRunning else { return }
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            // Updates requested before permission was granted are not always delivered; ask again.
+            location.start()
+        }
+        updateWaitingMessage()
+    }
+
+    /// Explains why there is no limit yet, so a stuck state can be diagnosed.
+    private func updateWaitingMessage() {
+        guard isRunning, policy.confirmed == nil else { return }
+        switch authorizationStatus {
+        case .denied, .restricted:
+            statusMessage = "Ingen adgang til lokalitet. Slå det til under Indstillinger → Fartgrænse."
+            return
+        case .notDetermined:
+            statusMessage = "Venter på tilladelse til lokalitet…"
+            return
+        default:
+            break
+        }
+        if diagnostics.locationsReceived == 0 {
+            statusMessage = "Venter på GPS…"
+        } else if let accuracy = diagnostics.lastAccuracy, accuracy > maxLookupAccuracy {
+            statusMessage = "Svagt GPS-signal (±\(Int(accuracy)) m). Venter på bedre signal…"
+        } else if lookupInFlight {
+            statusMessage = "Henter fartgrænse…"
+        }
     }
 
     func stop() {
@@ -121,20 +169,33 @@ final class SpeedMonitor: ObservableObject {
 
     private func handle(_ location: CLLocation) {
         guard isRunning, location.horizontalAccuracy >= 0 else { return }
+        diagnostics.locationsReceived += 1
+        diagnostics.lastFix = location.timestamp
+        diagnostics.lastAccuracy = location.horizontalAccuracy
         let sample = LocationSample(location)
         speedKmh = sample.speedKmh
         handle(policy.tick(speedKmh: sample.speedKmh, at: Date()))
         updateSpeedingFlag()
 
-        guard !lookupInFlight, location.horizontalAccuracy <= 100,
+        defer { updateWaitingMessage() }
+        guard !lookupInFlight, location.horizontalAccuracy <= maxLookupAccuracy,
               Date().timeIntervalSince(lastLookup) >= lookupInterval else { return }
         lookupInFlight = true
         lastLookup = Date()
+        diagnostics.lookupsStarted += 1
         let provider = self.provider
+        let started = Date()
         Task {
-            defer { lookupInFlight = false }
+            defer {
+                lookupInFlight = false
+                diagnostics.lookupsFinished += 1
+                diagnostics.lastLookupDuration = Date().timeIntervalSince(started)
+            }
             do {
                 let limit = try await provider.speedLimit(for: sample)
+                diagnostics.lastLookupResult = limit.map { "\($0.kmh.map { "\($0)" } ?? "ingen grænse") km/t fra \($0.source)" }
+                    ?? "ukendt fartgrænse"
+                diagnostics.lastError = (provider as? FallbackSpeedLimitProvider)?.primaryError?.localizedDescription
                 guard isRunning else { return }
                 roadName = limit?.roadName
                 limitSource = limit?.source ?? limitSource
@@ -144,6 +205,8 @@ final class SpeedMonitor: ObservableObject {
                 }
                 handle(policy.observe(limit, at: Date()))
             } catch {
+                diagnostics.lastLookupResult = "fejl"
+                diagnostics.lastError = error.localizedDescription
                 statusMessage = error.localizedDescription
             }
             currentLimit = policy.confirmed

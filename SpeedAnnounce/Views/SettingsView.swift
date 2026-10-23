@@ -1,6 +1,17 @@
 import SwiftUI
 
 struct SettingsView: View {
+    private var authorizationText: String {
+        switch monitor.authorizationStatus {
+        case .authorizedAlways: return "altid"
+        case .authorizedWhenInUse: return "når appen bruges"
+        case .denied: return "afvist"
+        case .restricted: return "begrænset"
+        case .notDetermined: return "ikke spurgt"
+        @unknown default: return "ukendt"
+        }
+    }
+
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var monitor: SpeedMonitor
     @Environment(\.dismiss) private var dismiss
@@ -61,6 +72,25 @@ struct SettingsView: View {
                     Text("Datakilde")
                 } footer: {
                     Text("HERE er samme kortdata som Saphe bruger og dækker alle danske veje. Appen henter kun en ny rute ved sving eller efter 1–2 km, og bruger OpenStreetMap hvis HERE fejler eller kvoten er brugt. Saphe har ingen offentlig API.")
+                }
+
+                Section {
+                    let d = monitor.diagnostics
+                    LabeledContent("Kører", value: monitor.isRunning ? "ja" : "nej")
+                    LabeledContent("Lokalitet", value: authorizationText)
+                    LabeledContent("GPS-positioner", value: "\(d.locationsReceived)")
+                    LabeledContent("Seneste position", value: d.lastFix.map { "\(Int(Date().timeIntervalSince($0))) sek siden" } ?? "–")
+                    LabeledContent("Nøjagtighed", value: d.lastAccuracy.map { "±\(Int($0)) m" } ?? "–")
+                    LabeledContent("Opslag", value: "\(d.lookupsFinished) af \(d.lookupsStarted)")
+                    LabeledContent("Seneste opslag", value: d.lastLookupDuration.map { String(format: "%.1f sek", $0) } ?? "–")
+                    LabeledContent("Resultat", value: d.lastLookupResult ?? "–")
+                    if let error = d.lastError {
+                        Text("Fejl: \(error)").font(.footnote).foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("Diagnose")
+                } footer: {
+                    Text("Tag et skærmbillede af denne sektion, hvis appen ikke finder fartgrænsen.")
                 }
 
                 Section {
