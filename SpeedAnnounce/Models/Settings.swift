@@ -2,14 +2,18 @@ import Foundation
 
 enum SpeedLimitSourceKind: String, CaseIterable, Identifiable {
     case here
+    case hereOnly
     case openStreetMap
     case saphe
 
     var id: String { rawValue }
 
+    var usesHERE: Bool { self == .here || self == .hereOnly }
+
     var title: String {
         switch self {
-        case .here: return "HERE (+ OpenStreetMap)"
+        case .here: return "HERE + OpenStreetMap"
+        case .hereOnly: return "HERE"
         case .openStreetMap: return "OpenStreetMap"
         case .saphe: return "Saphe (kræver API-adgang)"
         }

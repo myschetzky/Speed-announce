@@ -53,7 +53,7 @@ struct SettingsView: View {
                     Picker("Kilde", selection: $settings.source) {
                         ForEach(SpeedLimitSourceKind.allCases) { Text($0.title).tag($0) }
                     }
-                    if settings.source == .here {
+                    if settings.source.usesHERE {
                         SecureField("HERE API-nøgle", text: $settings.hereAPIKey)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
@@ -84,7 +84,7 @@ struct SettingsView: View {
                     LabeledContent("Opslag", value: "\(d.lookupsFinished) af \(d.lookupsStarted)")
                     LabeledContent("Seneste opslag", value: d.lastLookupDuration.map { String(format: "%.1f sek", $0) } ?? "–")
                     LabeledContent("Resultat", value: d.lastLookupResult ?? "–")
-                    if settings.source == .here {
+                    if settings.source.usesHERE {
                         LabeledContent("HERE", value: d.hereStatus ?? "–")
                         LabeledContent("HERE-nøgle", value: settings.hereAPIKey.isEmpty ? "mangler" : "indtastet")
                     }

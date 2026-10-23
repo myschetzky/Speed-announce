@@ -163,6 +163,8 @@ final class SpeedMonitor: ObservableObject {
             return FallbackSpeedLimitProvider(
                 primary: HERESpeedLimitProvider(apiKey: settings.hereAPIKey, usage: hereUsage),
                 fallback: OSMSpeedLimitProvider())
+        case .hereOnly:
+            return HERESpeedLimitProvider(apiKey: settings.hereAPIKey, usage: hereUsage)
         case .openStreetMap: return OSMSpeedLimitProvider()
         case .saphe: return SapheSpeedLimitProvider(endpoint: settings.sapheEndpoint, apiKey: settings.sapheAPIKey)
         }
@@ -195,6 +197,7 @@ final class SpeedMonitor: ObservableObject {
             do {
                 let limit = try await provider.speedLimit(for: sample)
                 diagnostics.hereStatus = (provider as? FallbackSpeedLimitProvider)?.primaryStatus
+                    ?? (provider is HERESpeedLimitProvider ? limit.map { $0.kmh.map { "\($0) km/t" } ?? "ingen grænse" } : nil)
                 diagnostics.lastLookupResult = limit.map { "\($0.kmh.map { "\($0)" } ?? "ingen grænse") km/t fra \($0.source)" }
                     ?? "ukendt fartgrænse"
                 diagnostics.lastError = nil
@@ -209,8 +212,11 @@ final class SpeedMonitor: ObservableObject {
             } catch {
                 diagnostics.lastLookupResult = "fejl"
                 diagnostics.hereStatus = (provider as? FallbackSpeedLimitProvider)?.primaryStatus
+                    ?? (provider is HERESpeedLimitProvider ? "fejl: \(error.localizedDescription)" : nil)
                 diagnostics.lastError = error.localizedDescription
                 statusMessage = error.localizedDescription
+                // A failed lookup counts as unknown, so a stale limit expires after the grace period.
+                if isRunning { handle(policy.observe(nil, at: Date())) }
             }
             currentLimit = policy.confirmed
             hereRequestsThisMonth = hereUsage.thisMonth

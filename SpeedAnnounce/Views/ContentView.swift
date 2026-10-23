@@ -70,7 +70,7 @@ struct ContentView: View {
             }
         }
         switch settings.source {
-        case .here: return "© HERE"
+        case .here, .hereOnly: return "© HERE"
         case .saphe: return "Saphe"
         case .openStreetMap: return "© OpenStreetMap-bidragydere"
         }
