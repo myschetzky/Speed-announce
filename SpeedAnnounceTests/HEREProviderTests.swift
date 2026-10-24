@@ -80,7 +80,7 @@ final class HEREProviderTests: XCTestCase {
                                     course: 89.4, speed: 13)
         let url = try XCTUnwrap(provider.makeRequest(for: moving, lookahead: 1_500).url?.absoluteString)
         XCTAssertTrue(url.contains("origin=55.6761,12.5683;course=89&"), url)
-        XCTAssertFalse(url.contains("%3D"), url)
+        XCTAssertFalse(url.contains("course%3D"), url)
         XCTAssertTrue(url.contains("spans=speedLimit,names"), url)
         XCTAssertTrue(url.hasSuffix("apiKey=abc%2B123%2Fx%3D"), url)
 
