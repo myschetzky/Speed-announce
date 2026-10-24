@@ -16,6 +16,8 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
     private var lastMatchIndex = 0
     private var lastFetch = Date.distantPast
     private var lastFetchCoordinate: CLLocationCoordinate2D?
+    /// After HERE rejects a request, wait before trying again so a bad request can't drain the quota.
+    private var blockedUntil = Date.distantPast
 
     /// How far ahead the requested route reaches.
     private let lookahead = 1_500.0
@@ -75,10 +77,15 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         guard usage.canSpend else {
             throw SpeedLimitProviderError.notConfigured("Månedens HERE-kvote er brugt. Bruger OpenStreetMap.")
         }
+        guard Date() >= blockedUntil else {
+            throw SpeedLimitProviderError.unavailable(
+                "HERE afviste sidste forespørgsel. Prøver igen om \(Int(blockedUntil.timeIntervalSinceNow)) sek.")
+        }
         usage.record()
         let (data, response) = try await session.data(for: makeRequest(for: sample, lookahead: lookahead))
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else {
+            if (400..<500).contains(status) { blockedUntil = Date().addingTimeInterval(60) }
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
             throw SpeedLimitProviderError.unavailable("HERE svarede \(status): \(body)")
         }
@@ -103,23 +110,26 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
         return SpeedLimit(kmh: Int((mps * 3.6).rounded()), roadName: match.roadName, source: name)
     }
 
-    private func makeRequest(for sample: LocationSample, lookahead: Double) -> URLRequest {
+    func makeRequest(for sample: LocationSample, lookahead: Double) -> URLRequest {
         let hasCourse = sample.course >= 0 && sample.speed > 2
         let course = hasCourse ? sample.course : 0
         let destination = Self.offset(sample.coordinate, meters: lookahead, bearing: course)
         var origin = "\(sample.coordinate.latitude),\(sample.coordinate.longitude)"
         if hasCourse { origin += ";course=\(Int(course.rounded()) % 360)" }
 
-        var components = URLComponents(string: "https://router.hereapi.com/v8/routes")!
-        components.queryItems = [
-            URLQueryItem(name: "transportMode", value: "car"),
-            URLQueryItem(name: "origin", value: origin),
-            URLQueryItem(name: "destination", value: "\(destination.latitude),\(destination.longitude)"),
-            URLQueryItem(name: "return", value: "polyline"),
-            URLQueryItem(name: "spans", value: "speedLimit,names"),
-            URLQueryItem(name: "apiKey", value: apiKey),
-        ]
-        return URLRequest(url: components.url!, timeoutInterval: 10)
+        // Built by hand: URLQueryItem percent-encodes the "=" in ";course=", which HERE rejects.
+        var keyCharacters = CharacterSet.alphanumerics
+        keyCharacters.insert(charactersIn: "-_.~")
+        let key = apiKey.addingPercentEncoding(withAllowedCharacters: keyCharacters) ?? ""
+        let query = [
+            "transportMode=car",
+            "origin=\(origin)",
+            "destination=\(destination.latitude),\(destination.longitude)",
+            "return=polyline",
+            "spans=speedLimit,names",
+            "apiKey=\(key)",
+        ].joined(separator: "&")
+        return URLRequest(url: URL(string: "https://router.hereapi.com/v8/routes?\(query)")!, timeoutInterval: 10)
     }
 
     static func offset(_ coordinate: CLLocationCoordinate2D, meters: Double, bearing: Double) -> CLLocationCoordinate2D {

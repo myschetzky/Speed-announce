@@ -74,6 +74,21 @@ final class HEREProviderTests: XCTestCase {
         XCTAssertNil(empty.nearestDistance(to: onRoute))
     }
 
+    func testRequestKeepsCourseOptionUnencoded() throws {
+        let provider = HERESpeedLimitProvider(apiKey: "abc+123/x=", usage: HEREUsage(monthlyLimit: 10))
+        let moving = LocationSample(coordinate: CLLocationCoordinate2D(latitude: 55.6761, longitude: 12.5683),
+                                    course: 89.4, speed: 13)
+        let url = try XCTUnwrap(provider.makeRequest(for: moving, lookahead: 1_500).url?.absoluteString)
+        XCTAssertTrue(url.contains("origin=55.6761,12.5683;course=89&"), url)
+        XCTAssertFalse(url.contains("%3D"), url)
+        XCTAssertTrue(url.contains("spans=speedLimit,names"), url)
+        XCTAssertTrue(url.hasSuffix("apiKey=abc%2B123%2Fx%3D"), url)
+
+        let parked = LocationSample(coordinate: CLLocationCoordinate2D(latitude: 55.6761, longitude: 12.5683))
+        let parkedURL = try XCTUnwrap(provider.makeRequest(for: parked, lookahead: 1_500).url?.absoluteString)
+        XCTAssertFalse(parkedURL.contains("course"), parkedURL)
+    }
+
     func testOffsetProjection() {
         let start = CLLocationCoordinate2D(latitude: 55.68, longitude: 12.57)
         let north = HERESpeedLimitProvider.offset(start, meters: 1_000, bearing: 0)
