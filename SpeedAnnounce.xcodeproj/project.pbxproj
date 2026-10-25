@@ -18,6 +18,7 @@
 		569C004A047FC4693C58BA85 /* SpeedMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72F40821DCB99B773375FE3 /* SpeedMonitor.swift */; };
 		68DF66257163A94DFD966555 /* TripLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29BB70B65010F91009DA60 /* TripLogTests.swift */; };
 		73628E54B6D09FFEAAC304C6 /* AnnouncementPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6D8C7E53A21C8B70D18661E /* AnnouncementPolicy.swift */; };
+		75DDB717B3542A616CC35A0D /* FallbackProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53DD816F373F7E4AE767E56C /* FallbackProviderTests.swift */; };
 		89B25B0A10A022205D8005A7 /* FlexiblePolyline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E0739D963D4CCEE35D06BA /* FlexiblePolyline.swift */; };
 		91EC1C243B65A6EB7F890A35 /* AnnouncementPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75ECBFE06231C0E004674580 /* AnnouncementPolicyTests.swift */; };
 		9FBDB9BEEA4C7C1BAE8893A0 /* SpeedAnnounceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C600FC93C6259AB9228486D9 /* SpeedAnnounceApp.swift */; };
@@ -52,6 +53,7 @@
 		32715A22BAB5470646F20B7D /* HEREProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEREProviderTests.swift; sourceTree = "<group>"; };
 		43FD40AFDFA5F4E3157A575A /* RoadGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadGeometry.swift; sourceTree = "<group>"; };
 		4C5C5E3E4C59FF2C15CBEDF1 /* SapheSpeedLimitProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SapheSpeedLimitProvider.swift; sourceTree = "<group>"; };
+		53DD816F373F7E4AE767E56C /* FallbackProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackProviderTests.swift; sourceTree = "<group>"; };
 		6C68852F5E0F6B2410B42BCA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7427EE1C35B67F7A20FAAA20 /* SpeedAnnounce.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SpeedAnnounce.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		759E55D9E844FA2205ED365F /* OSMRoadMatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSMRoadMatcherTests.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				75ECBFE06231C0E004674580 /* AnnouncementPolicyTests.swift */,
+				53DD816F373F7E4AE767E56C /* FallbackProviderTests.swift */,
 				32715A22BAB5470646F20B7D /* HEREProviderTests.swift */,
 				A1C53B26D7456C6EFCB845D7 /* MaxspeedParserTests.swift */,
 				759E55D9E844FA2205ED365F /* OSMRoadMatcherTests.swift */,
@@ -249,6 +252,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				91EC1C243B65A6EB7F890A35 /* AnnouncementPolicyTests.swift in Sources */,
+				75DDB717B3542A616CC35A0D /* FallbackProviderTests.swift in Sources */,
 				E655CA7D95F448B7B7AF9E46 /* HEREProviderTests.swift in Sources */,
 				DAB698F677539CC8144FD068 /* MaxspeedParserTests.swift in Sources */,
 				47C536688B6D01B94A165EA5 /* OSMRoadMatcherTests.swift in Sources */,
