@@ -16,6 +16,11 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
     private var lastMatchIndex = 0
     private var lastFetch = Date.distantPast
     private var lastFetchCoordinate: CLLocationCoordinate2D?
+    private var driftCount = 0
+    /// Limits refetches caused by drift, in case a road's geometry is offset everywhere.
+    private var driftRetryAfter = Date.distantPast
+    /// A route segment this far away is probably a different, parallel road.
+    private let driftDistance = 15.0
     /// After HERE rejects a request, wait before trying again so a bad request can't drain the quota.
     private var blockedUntil = Date.distantPast
 
@@ -37,7 +42,8 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
             throw SpeedLimitProviderError.notConfigured("Indtast din HERE API-nøgle under Indstillinger.")
         }
         let current = match(sample)
-        if let current, current.remaining > refetchRemaining {
+        let drifting = driftCount >= 3 && Date() >= driftRetryAfter
+        if let current, current.remaining > refetchRemaining, !drifting {
             return try limit(from: current)
         }
         guard Date().timeIntervalSince(lastFetch) >= minFetchInterval else {
@@ -54,6 +60,7 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
 
         lastFetch = Date()
         lastFetchCoordinate = sample.coordinate
+        if drifting { driftRetryAfter = Date().addingTimeInterval(30) }
         do {
             var route = try await fetchRoute(for: sample, lookahead: lookahead)
             if route.points.count < 2 {
@@ -65,6 +72,7 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
             }
             path = route
             lastMatchIndex = 0
+            driftCount = 0
         } catch {
             if let current { return try limit(from: current) }
             throw error
@@ -100,6 +108,8 @@ final class HERESpeedLimitProvider: SpeedLimitProvider {
     private func match(_ sample: LocationSample) -> HERERoutePath.Match? {
         guard let path, let hit = path.match(sample, near: lastMatchIndex) else { return nil }
         lastMatchIndex = hit.segment
+        // Consistently off to the side: probably a parallel road or a ramp the route took.
+        driftCount = hit.distance > driftDistance ? driftCount + 1 : 0
         return hit
     }
 

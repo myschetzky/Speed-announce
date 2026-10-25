@@ -23,6 +23,40 @@ final class AnnouncementPolicyTests: XCTestCase {
         XCTAssertEqual(policy.observe(limit(80), at: at(5)), [.limitChanged(.kmh(80))])
     }
 
+    func testDoesNotFlipBackAndForth() {
+        var policy = AnnouncementPolicy()
+        _ = policy.observe(limit(80), at: at(0))
+        _ = policy.observe(limit(80), at: at(1))
+        XCTAssertEqual(policy.confirmed, .kmh(80))
+        _ = policy.observe(limit(60), at: at(2))
+        XCTAssertEqual(policy.observe(limit(60), at: at(3)), [.limitChanged(.kmh(60))])
+
+        // Two sources alternating every couple of seconds must not flip the limit back.
+        var events: [AnnouncementPolicy.Event] = []
+        for second in 4..<20 {
+            let value = (second / 2) % 2 == 0 ? 80 : 60
+            events += policy.observe(limit(value), at: at(Double(second)))
+        }
+        XCTAssertEqual(events, [])
+        XCTAssertEqual(policy.confirmed, .kmh(60))
+    }
+
+    func testReturnsToPreviousLimitWhenSustained() {
+        var policy = AnnouncementPolicy()
+        _ = policy.observe(limit(80), at: at(0))
+        _ = policy.observe(limit(80), at: at(1))
+        _ = policy.observe(limit(60), at: at(2))
+        _ = policy.observe(limit(60), at: at(3))
+        // Back to 80 for real (e.g. a short 60 stretch): accepted after 8 s.
+        for second in 4..<12 {
+            XCTAssertEqual(policy.observe(limit(80), at: at(Double(second))), [], "at \(second)")
+        }
+        XCTAssertEqual(policy.observe(limit(80), at: at(12)), [.limitChanged(.kmh(80))])
+        // A different new limit is still accepted quickly.
+        _ = policy.observe(limit(50), at: at(13))
+        XCTAssertEqual(policy.observe(limit(50), at: at(14)), [.limitChanged(.kmh(50))])
+    }
+
     func testUnknownKeepsLimitDuringGrace() {
         var policy = AnnouncementPolicy()
         _ = policy.observe(limit(50), at: at(0))

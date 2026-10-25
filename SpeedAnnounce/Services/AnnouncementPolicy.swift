@@ -11,6 +11,13 @@ struct AnnouncementPolicy {
         var warningRepeat: TimeInterval = 20
         /// Consecutive identical lookups needed before a new limit is accepted.
         var confirmationsNeeded = 2
+        /// ...and the new value must have been seen for at least this long.
+        var minCandidateDuration: TimeInterval = 1
+        /// Going back to the limit that was just replaced needs much stronger evidence,
+        /// so two sources or two nearby roads can't make the limit flip back and forth.
+        var flipBackDuration: TimeInterval = 8
+        /// How long after a change a return to the previous limit counts as a flip back.
+        var flipBackWindow: TimeInterval = 30
         /// How long a confirmed limit survives lookups that return "unknown".
         var unknownGrace: TimeInterval = 20
         /// Over-speed must last this long before warning (filters GPS spikes).
@@ -39,6 +46,8 @@ struct AnnouncementPolicy {
     private(set) var confirmed: Limit?
     private var candidate: Limit?
     private var candidateCount = 0
+    private var candidateSince: Date?
+    private var previousConfirmed: Limit?
     private var confirmedAt: Date?
     private var lastKnownAt: Date?
     private var lastLimitAnnouncement: Date?
@@ -73,9 +82,15 @@ struct AnnouncementPolicy {
         } else {
             candidate = value
             candidateCount = 1
+            candidateSince = now
         }
-        guard candidateCount >= config.confirmationsNeeded else { return [] }
+        let isFlipBack = value == previousConfirmed
+            && confirmedAt.map { now.timeIntervalSince($0) < config.flipBackWindow } ?? false
+        let required = isFlipBack ? config.flipBackDuration : config.minCandidateDuration
+        guard candidateCount >= config.confirmationsNeeded,
+              now.timeIntervalSince(candidateSince ?? now) >= required else { return [] }
 
+        previousConfirmed = confirmed
         confirmed = value
         confirmedAt = now
         candidate = nil
